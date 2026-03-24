@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+db.sqlite3
+*.sqlite3
+detector/static/detector/uploads/
+detector/static/detector/results/
+venv/
+.env
