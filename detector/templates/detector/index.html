@@ -1,0 +1,326 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Object Detect — AI Detection Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    [data-theme="dark"]{--bg:#0a0a0f;--surface:#111118;--panel:#16161f;--border:#2a2a3a;--amber:#f5a623;--amber-dim:#c07d10;--green:#39d98a;--red:#ff5e5e;--blue:#4fc3f7;--text:#e8e8f0;--muted:#6b6b80;--header-bg:rgba(10,10,15,0.85);--drop-bg:rgba(22,22,31,0.6);--drop-hover:rgba(245,166,35,0.04);--img-bg:#0d0d14;--det-bg:#16161f;--grid-color:rgba(245,166,35,0.03);--toast-bg:#2a1010}
+    [data-theme="light"]{--bg:#f4f4f8;--surface:#fff;--panel:#f0f0f5;--border:#d8d8e8;--amber:#d4840a;--amber-dim:#b06a00;--green:#1a9e5c;--red:#d93025;--blue:#0077b6;--text:#1a1a2e;--muted:#7a7a90;--header-bg:rgba(244,244,248,0.92);--drop-bg:rgba(240,240,245,0.8);--drop-hover:rgba(212,132,10,0.06);--img-bg:#e8e8f0;--det-bg:#f7f7fb;--grid-color:rgba(212,132,10,0.04);--toast-bg:#fff0f0}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;transition:background .35s,color .35s}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--grid-color) 1px,transparent 1px),linear-gradient(90deg,var(--grid-color) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+    header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--border);background:var(--header-bg);backdrop-filter:blur(12px);transition:background .35s,border-color .35s}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo-icon{width:36px;height:36px;border:2px solid var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px}
+    .logo-text{font-size:1.4rem;font-weight:800;letter-spacing:-.1px;font-family:'elephant'}
+    .logo-text span{color:var(--amber);transition:color .35s}
+    .header-right{display:flex;align-items:center;gap:14px}
+    .header-badge{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--amber);border:1px solid var(--amber-dim);padding:4px 10px;border-radius:3px;background:rgba(245,166,35,.05);letter-spacing:2px;text-transform:uppercase;transition:color .35s,border-color .35s}
+    #theme-toggle{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:24px;padding:7px 16px;cursor:pointer;font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--text);transition:background .25s,border-color .25s,color .25s,transform .15s;user-select:none}
+    #theme-toggle:hover{border-color:var(--amber);color:var(--amber);transform:scale(1.03)}
+    #theme-toggle:active{transform:scale(.97)}
+    #theme-icon{font-size:1rem;display:inline-block;transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
+    #theme-icon.spin{transform:rotate(360deg)}
+    main{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:40px 32px;display:grid;grid-template-columns:1fr 380px;gap:28px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:background .35s,border-color .35s}
+    .card-header{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--panel);transition:background .35s,border-color .35s}
+    .card-header h2{font-size:.85rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+    .card-dot{width:8px;height:8px;border-radius:50%;background:var(--amber)}
+    .card-body{padding:24px}
+    #drop-zone{border:2px dashed var(--border);border-radius:10px;min-height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:pointer;position:relative;background:var(--drop-bg);transition:border-color .25s,background .25s}
+    #drop-zone:hover,#drop-zone.dragover{border-color:var(--amber);background:var(--drop-hover)}
+    #drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .upload-icon{font-size:3rem;opacity:.4}
+    .upload-title{font-size:1rem;font-weight:600}
+    .upload-sub{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted);text-align:center}
+    #preview-container,#result-container{display:none;position:relative}
+    #preview-img,#result-img{width:100%;border-radius:8px;display:block;max-height:460px;object-fit:contain;background:var(--img-bg)}
+    .img-label{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.65);font-family:'Space Mono',monospace;font-size:.65rem;color:var(--amber);padding:4px 8px;border-radius:3px;letter-spacing:1px;text-transform:uppercase}
+    #detect-btn{display:none;width:100%;margin-top:18px;padding:14px;background:var(--amber);color:#000;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;border:none;border-radius:8px;cursor:pointer;transition:filter .2s,transform .1s}
+    #detect-btn:hover{filter:brightness(1.12)}
+    #detect-btn:active{transform:scale(.98)}
+    #detect-btn:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;filter:none}
+    #download-btn{display:none;width:100%;margin-top:10px;padding:11px;background:transparent;color:var(--green);font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border:1px solid var(--green);border-radius:8px;cursor:pointer;transition:background .2s,color .2s;text-decoration:none;text-align:center}
+    #download-btn:hover{background:var(--green);color:#000}
+    #reset-btn{display:none;width:100%;margin-top:10px;padding:11px;background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:color .2s,border-color .2s}
+    #reset-btn:hover{color:var(--text);border-color:var(--muted)}
+    #save-status{display:none;margin-top:10px;padding:10px 14px;background:rgba(57,217,138,.08);border:1px solid rgba(57,217,138,.2);border-radius:6px;font-family:'Space Mono',monospace;font-size:.68rem;color:var(--green);line-height:1.7}
+    [data-theme="light"] #save-status{background:rgba(26,158,92,.07);border-color:rgba(26,158,92,.25)}
+    .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,0,0,.25);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #stats-panel .stat-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);transition:border-color .35s}
+    #stats-panel .stat-row:last-child{border-bottom:none}
+    .stat-label{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+    .stat-value{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--amber)}
+    .stat-value.green{color:var(--green)}.stat-value.blue{color:var(--blue)}
+    #stats-empty,#detections-empty{text-align:center;padding:28px 0;font-family:'Space Mono',monospace;font-size:.75rem;color:var(--muted);line-height:1.8}
+    #detections-list{max-height:400px;overflow-y:auto}
+    #detections-list::-webkit-scrollbar{width:4px}
+    #detections-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .det-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;margin-bottom:6px;background:var(--det-bg);border:1px solid var(--border);animation:fadeSlide .3s ease both;transition:background .35s,border-color .35s}
+    @keyframes fadeSlide{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+    .det-color{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .det-name{flex:1;font-weight:600;font-size:.88rem;text-transform:capitalize}
+    .det-conf{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--green);background:rgba(57,217,138,.1);padding:3px 7px;border-radius:3px}
+    [data-theme="light"] .det-conf{background:rgba(26,158,92,.1)}
+    .det-coords{font-family:'Space Mono',monospace;font-size:.6rem;color:var(--muted)}
+    #class-summary{display:flex;flex-wrap:wrap;gap:8px;padding:16px 22px;border-top:1px solid var(--border)}
+    .cls-badge{font-family:'Space Mono',monospace;font-size:.7rem;background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.25);padding:4px 10px;border-radius:20px;text-transform:capitalize;transition:color .35s,background .35s}
+    [data-theme="light"] .cls-badge{background:rgba(212,132,10,.08);border-color:rgba(212,132,10,.3)}
+    #toast{display:none;position:fixed;bottom:32px;right:32px;background:var(--toast-bg);border:1px solid var(--red);color:var(--red);font-family:'Space Mono',monospace;font-size:.8rem;padding:14px 20px;border-radius:8px;z-index:999;max-width:360px;animation:toastIn .3s ease}
+    @keyframes toastIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+    @media(max-width:900px){main{grid-template-columns:1fr}header{padding:16px 20px}.header-badge{display:none}}
+    @media(max-width:500px){main{padding:16px 12px}#theme-toggle span:last-child{display:none}}
+  </style>
+</head>
+<body>
+
+  <!-- ═══ HEADER ══════════════════════════════════════════════════════ -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🔍</div>
+      <div class="logo-text">Object<span>Detect</span></div>
+    </div>
+    <div class="header-right">
+      <div class="header-badge">YOLOv8 · COCO · 80 Classes</div>
+      <!--
+        DARK / LIGHT MODE TOGGLE BUTTON
+        Clicking this button toggles data-theme on <html> between
+        "dark" and "light", which flips all CSS custom properties.
+        The preference is saved to localStorage so it persists
+        across page reloads.
+      -->
+      <button id="theme-toggle" title="Toggle dark / light mode">
+        <span id="theme-icon">🌙</span>
+        <span id="theme-label">Light Mode</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ MAIN ════════════════════════════════════════════════════════ -->
+  <main>
+
+    <!-- LEFT COLUMN ─────────────────────────────────────────────────── -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- Input Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot"></div>
+          <h2>Input Image</h2>
+        </div>
+        <div class="card-body">
+          <div id="drop-zone">
+            <input type="file" id="file-input" accept="image/*" />
+            <div class="upload-icon">📸</div>
+            <div class="upload-title">Drop image here or click to browse</div>
+            <div class="upload-sub">PNG · JPG · JPEG · BMP · WEBP · GIF<br>Max size: 16 MB</div>
+          </div>
+          <div id="preview-container">
+            <img id="preview-img" src="" alt="Preview" />
+            <div class="img-label">INPUT</div>
+          </div>
+          <button id="detect-btn">⚡ Run Detection</button>
+          <button id="reset-btn">↩ Upload New Image</button>
+        </div>
+      </div>
+
+      <!-- Result Card (hidden until detection completes) -->
+      <div class="card" id="result-card" style="display:none">
+        <div class="card-header">
+          <div class="card-dot" style="background:var(--green)"></div>
+          <h2>Detection Result</h2>
+        </div>
+        <div class="card-body">
+          <div id="result-container">
+            <img id="result-img" src="" alt="Result" />
+            <div class="img-label" style="color:var(--green)">OUTPUT</div>
+          </div>
+          <a id="download-btn" href="#" download>⬇ Download Result Image</a>
+          <div id="save-status"></div>
+        </div>
+      </div>
+
+    </div><!-- /LEFT COLUMN -->
+
+    <!-- RIGHT COLUMN ────────────────────────────────────────────────── -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- Summary Stats Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot" style="background:var(--blue)"></div>
+          <h2>Summary</h2>
+        </div>
+        <div class="card-body" id="stats-panel">
+          <div id="stats-empty">
+            <div style="font-size:2rem;margin-bottom:8px">📊</div>
+            Run detection to see<br>statistics here.
+          </div>
+          <div id="stats-data" style="display:none">
+            <div class="stat-row">
+              <span class="stat-label">Objects Found</span>
+              <span class="stat-value" id="stat-total">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Unique Classes</span>
+              <span class="stat-value green" id="stat-classes">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Top Confidence</span>
+              <span class="stat-value blue" id="stat-conf">—</span>
+            </div>
+          </div>
+        </div>
+        <div id="class-summary" style="display:none"></div>
+      </div>
+
+      <!-- Detections List Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot"></div>
+          <h2>Detections</h2>
+        </div>
+        <div class="card-body">
+          <div id="detections-empty">
+            <div style="font-size:2rem;margin-bottom:8px">🎯</div>
+            Upload an image and run<br>detection to see results.
+          </div>
+          <div id="detections-list"></div>
+        </div>
+      </div>
+
+    </div><!-- /RIGHT COLUMN -->
+
+  </main>
+
+  <div id="toast"></div>
+
+  <!-- ═══ JAVASCRIPT ══════════════════════════════════════════════════ -->
+  <script>
+    // ── Element references ────────────────────────────────────────────
+    const html=document.documentElement,
+          themeToggle=document.getElementById("theme-toggle"),
+          themeIcon=document.getElementById("theme-icon"),
+          themeLabel=document.getElementById("theme-label"),
+          fileInput=document.getElementById("file-input"),
+          dropZone=document.getElementById("drop-zone"),
+          previewContainer=document.getElementById("preview-container"),
+          previewImg=document.getElementById("preview-img"),
+          detectBtn=document.getElementById("detect-btn"),
+          resetBtn=document.getElementById("reset-btn"),
+          downloadBtn=document.getElementById("download-btn"),
+          saveStatus=document.getElementById("save-status"),
+          resultCard=document.getElementById("result-card"),
+          resultContainer=document.getElementById("result-container"),
+          resultImg=document.getElementById("result-img"),
+          statTotal=document.getElementById("stat-total"),
+          statClasses=document.getElementById("stat-classes"),
+          statConf=document.getElementById("stat-conf"),
+          statsEmpty=document.getElementById("stats-empty"),
+          statsData=document.getElementById("stats-data"),
+          classSummary=document.getElementById("class-summary"),
+          detEmpty=document.getElementById("detections-empty"),
+          detList=document.getElementById("detections-list"),
+          toast=document.getElementById("toast");
+
+    let selectedFile=null;
+    const CLASS_COLORS=["#f5a623","#39d98a","#4fc3f7","#ff5e5e","#c084fc","#fb923c","#34d399","#60a5fa","#f472b6","#a3e635"];
+
+    // ── DARK / LIGHT MODE ─────────────────────────────────────────────
+    // Load saved preference on every page load (default: dark)
+    applyTheme(localStorage.getItem("ObjectDetect-theme")||"dark");
+
+    themeToggle.addEventListener("click",()=>{
+      const next=html.getAttribute("data-theme")==="dark"?"light":"dark";
+      // Spin animation on the icon
+      themeIcon.classList.add("spin");
+      setTimeout(()=>themeIcon.classList.remove("spin"),500);
+      applyTheme(next);
+      localStorage.setItem("ObjectDetect-theme",next);   // persist preference
+    });
+
+    function applyTheme(t){
+      html.setAttribute("data-theme",t);
+      // Label shows what you'll switch TO (the opposite of current)
+      if(t==="dark"){themeIcon.textContent="🌙";themeLabel.textContent="Light Mode";}
+      else{themeIcon.textContent="☀️";themeLabel.textContent="Dark Mode";}
+    }
+
+    // ── DRAG & DROP ───────────────────────────────────────────────────
+    dropZone.addEventListener("dragover",e=>{e.preventDefault();dropZone.classList.add("dragover")});
+    dropZone.addEventListener("dragleave",()=>dropZone.classList.remove("dragover"));
+    dropZone.addEventListener("drop",e=>{e.preventDefault();dropZone.classList.remove("dragover");if(e.dataTransfer.files.length>0)handleFile(e.dataTransfer.files[0])});
+    fileInput.addEventListener("change",()=>{if(fileInput.files.length>0)handleFile(fileInput.files[0])});
+
+    function handleFile(file){
+      if(!file.type.startsWith("image/")){showToast("Please select a valid image file.");return;}
+      selectedFile=file;
+      const r=new FileReader();
+      r.onload=e=>{previewImg.src=e.target.result;dropZone.style.display="none";previewContainer.style.display="block";detectBtn.style.display="block";};
+      r.readAsDataURL(file);
+    }
+
+    // ── DETECT ────────────────────────────────────────────────────────
+    // NOTE: Django URL uses trailing slash → "/detect/"
+    // (Flask used "/detect" without slash)
+    detectBtn.addEventListener("click",async()=>{
+      if(!selectedFile)return;
+      detectBtn.disabled=true;
+      detectBtn.innerHTML='<span class="spinner"></span> Analysing…';
+      const fd=new FormData();
+      fd.append("image",selectedFile);
+      try{
+        const res=await fetch("/detect/",{method:"POST",body:fd});
+        const data=await res.json();
+        if(!data.success){showToast("Detection failed: "+(data.error||"unknown error"));return;}
+        renderResults(data);
+      }catch(err){showToast("Network error: "+err.message);}
+      finally{detectBtn.disabled=false;detectBtn.innerHTML="⚡ Run Detection";resetBtn.style.display="block";}
+    });
+
+    // ── RENDER RESULTS ────────────────────────────────────────────────
+    function renderResults(data){
+      resultImg.src="data:image/jpeg;base64,"+data.result_image_b64;
+      resultContainer.style.display="block";resultCard.style.display="block";
+      downloadBtn.href="data:image/jpeg;base64,"+data.result_image_b64;
+      downloadBtn.download=data.result_filename||"detection_result.jpg";
+      downloadBtn.style.display="block";
+      saveStatus.style.display="block";
+      saveStatus.innerHTML="✅ Saved on server:<br>📁 <strong>static/detector/uploads/</strong> — original<br>📁 <strong>static/detector/results/"+data.result_filename+"</strong> — annotated";
+      statsEmpty.style.display="none";statsData.style.display="block";
+      statTotal.textContent=data.total;
+      statClasses.textContent=Object.keys(data.class_summary).length;
+      const mc=data.detections.length>0?Math.max(...data.detections.map(d=>d.confidence)):0;
+      statConf.textContent=data.detections.length>0?mc.toFixed(1)+"%":"—";
+      classSummary.style.display="flex";classSummary.innerHTML="";
+      for(const[cls,cnt]of Object.entries(data.class_summary)){const b=document.createElement("span");b.className="cls-badge";b.textContent=`${cls} ×${cnt}`;classSummary.appendChild(b);}
+      detEmpty.style.display="none";detList.innerHTML="";
+      data.detections.forEach((det,i)=>{
+        const item=document.createElement("div");item.className="det-item";item.style.animationDelay=(i*50)+"ms";
+        item.innerHTML=`<div class="det-color" style="background:${CLASS_COLORS[i%CLASS_COLORS.length]}"></div><div class="det-name">${det.class_name}</div><div class="det-conf">${det.confidence}%</div><div class="det-coords">[${det.bbox.join(", ")}]</div>`;
+        detList.appendChild(item);
+      });
+      window.scrollTo({top:0,behavior:"smooth"});
+    }
+
+    // ── RESET ─────────────────────────────────────────────────────────
+    resetBtn.addEventListener("click",()=>{
+      selectedFile=null;fileInput.value="";previewImg.src="";resultImg.src="";
+      [previewContainer,resultCard,resultContainer,downloadBtn,saveStatus].forEach(el=>el.style.display="none");
+      detectBtn.style.display="none";resetBtn.style.display="none";dropZone.style.display="";
+      statsEmpty.style.display="";statsData.style.display="none";
+      classSummary.style.display="none";classSummary.innerHTML="";
+      detEmpty.style.display="";detList.innerHTML="";
+    });
+
+    // ── TOAST ─────────────────────────────────────────────────────────
+    function showToast(msg){toast.textContent="⚠ "+msg;toast.style.display="block";setTimeout(()=>{toast.style.display="none"},4500);}
+  </script>
+
+</body>
+</html>
